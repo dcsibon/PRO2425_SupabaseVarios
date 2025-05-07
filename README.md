@@ -14,14 +14,14 @@ implementation("org.postgresql:postgresql:42.7.3")
 
 ---
 
-## 2. Crea el `object SupabaseDataSource` con JDBC
+## 2. Crea el `object SupabaseDatabase` con JDBC
 
 ```kotlin
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 
-object SupabaseDataSource {
+object SupabaseDatabase {
     private const val URL = "jdbc:postgresql://<tu-host>.supabase.co:5432/postgres"
     private const val USER = "<tu-usuario>"
     private const val PASSWORD = "<tu-password>"
@@ -63,7 +63,7 @@ fun existeStudent(nombre: String): Boolean {
     var rs = null
 
     return try {
-        conn = SupabaseDataSource.getConnection()
+        conn = SupabaseDatabase.getConnection()
         stmt = conn.prepareStatement("SELECT COUNT(*) FROM students WHERE name = ?")
         stmt.setString(1, nombre)
         rs = stmt.executeQuery()
