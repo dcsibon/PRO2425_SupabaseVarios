@@ -31,7 +31,7 @@ data class Student(val id: Int = 0, val name: String)
 
 ---
 
-## 3. Fuente de datos JDBC: `SupabaseDataSource.kt`
+## 3. Fuente de datos JDBC: `SupabaseDB.kt`
 
 ```kotlin
 package db
@@ -40,7 +40,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 
-object SupabaseDataSource {
+object SupabaseDB {
     private const val URL = "jdbc:postgresql://<TU-HOST>.supabase.co:5432/postgres"
     private const val USER = "<TU-USUARIO>"
     private const val PASSWORD = "<TU-PASSWORD>"
@@ -73,16 +73,16 @@ object SupabaseDataSource {
 
 ---
 
-## 4. DAO: `SupabaseJdbcStudentDao.kt`
+## 4. DAO: `StudentDAOSupabase.kt`
 
 ```kotlin
 package dao
 
-import db.SupabaseDataSource
+import db.SupabaseDB
 import model.Student
 import java.sql.Connection
 
-class SupabaseJdbcStudentDao : IStudentDao {
+class StudentDAOSupabase : IStudentDao {
 
     override fun getAll(): List<Student> {
         val students = mutableListOf<Student>()
@@ -91,7 +91,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
         var rs = null
 
         try {
-            conn = SupabaseDataSource.getConnection()
+            conn = SupabaseDB.getConnection()
             stmt = conn.prepareStatement("SELECT * FROM students ORDER BY id")
             rs = stmt.executeQuery()
             while (rs.next()) {
@@ -102,7 +102,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
         } finally {
             try { rs?.close() } catch (_: Exception) {}
             try { stmt?.close() } catch (_: Exception) {}
-            SupabaseDataSource.closeConnection(conn)
+            SupabaseDB.closeConnection(conn)
         }
         return students
     }
@@ -111,7 +111,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
         var conn: Connection? = null
         var stmt = null
         try {
-            conn = SupabaseDataSource.getConnection()
+            conn = SupabaseDB.getConnection()
             stmt = conn.prepareStatement("INSERT INTO students (name) VALUES (?)")
             stmt.setString(1, name)
             stmt.executeUpdate()
@@ -119,7 +119,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
             println("Error al añadir estudiante: ${e.message}")
         } finally {
             try { stmt?.close() } catch (_: Exception) {}
-            SupabaseDataSource.closeConnection(conn)
+            SupabaseDB.closeConnection(conn)
         }
     }
 
@@ -127,7 +127,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
         var conn: Connection? = null
         var stmt = null
         try {
-            conn = SupabaseDataSource.getConnection()
+            conn = SupabaseDB.getConnection()
             stmt = conn.prepareStatement("UPDATE students SET name = ? WHERE id = ?")
             stmt.setString(1, name)
             stmt.setInt(2, id)
@@ -136,7 +136,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
             println("Error al actualizar estudiante: ${e.message}")
         } finally {
             try { stmt?.close() } catch (_: Exception) {}
-            SupabaseDataSource.closeConnection(conn)
+            SupabaseDB.closeConnection(conn)
         }
     }
 
@@ -144,7 +144,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
         var conn: Connection? = null
         var stmt = null
         try {
-            conn = SupabaseDataSource.getConnection()
+            conn = SupabaseDB.getConnection()
             stmt = conn.prepareStatement("DELETE FROM students WHERE id = ?")
             stmt.setInt(1, id)
             stmt.executeUpdate()
@@ -152,7 +152,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
             println("Error al eliminar estudiante: ${e.message}")
         } finally {
             try { stmt?.close() } catch (_: Exception) {}
-            SupabaseDataSource.closeConnection(conn)
+            SupabaseDB.closeConnection(conn)
         }
     }
 
@@ -162,7 +162,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
         var stmt = null
         var rs = null
         return try {
-            conn = SupabaseDataSource.getConnection()
+            conn = SupabaseDB.getConnection()
             stmt = conn.prepareStatement("SELECT COUNT(*) FROM students WHERE name = ?")
             stmt.setString(1, name)
             rs = stmt.executeQuery()
@@ -173,7 +173,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
         } finally {
             try { rs?.close() } catch (_: Exception) {}
             try { stmt?.close() } catch (_: Exception) {}
-            SupabaseDataSource.closeConnection(conn)
+            SupabaseDB.closeConnection(conn)
         }
     }
 }
@@ -185,7 +185,7 @@ class SupabaseJdbcStudentDao : IStudentDao {
 
 ```kotlin
 fun main() {
-    val dao = SupabaseJdbcStudentDao()
+    val dao = StudentDAOSupabase()
     dao.add("Mario")
     dao.getAll().forEach { println("${it.id}: ${it.name}") }
     println("¿Existe Diego? ${dao.existsByName("Diego")}")
@@ -309,7 +309,7 @@ class StudentsManager(
 ) {
     private var running = true
 
-    fun run() {
+    fun menu() {
         while (running) {
             ui.mostrarTexto("""
                 === MENÚ ===
@@ -394,16 +394,16 @@ class StudentsManager(
 
 ```kotlin
 import app.StudentsManager
-import dao.SupabaseJdbcStudentDao
+import dao.StudentDAOSupabase
 import service.StudentService
 import ui.Consola
 
 fun main() {
-    val dao = SupabaseJdbcStudentDao()
+    val dao = StudentDAOSupabase()
     val service = StudentService(dao)
     val ui = Consola()
     val manager = StudentsManager(service, ui)
-    manager.run()
+    manager.menu()
 }
 ```
 
@@ -431,10 +431,10 @@ src/
         │
         ├── dao/                  # Acceso a datos
         │   ├── IStudentDao.kt
-        │   └── SupabaseJdbcStudentDao.kt
+        │   └── StudentDAOSupabase.kt
         │
         ├── db/                   # Configuración de conexiones a la BD
-        │   └── SupabaseDataSource.kt
+        │   └── SupabaseDB.kt
         │
         ├── model/                # Modelos de datos
         │   └── Student.kt
@@ -536,4 +536,3 @@ application {
   ```
 
 * Si usas otros paquetes para organizar tu proyecto, asegúrate de ajustar los `package` en la parte superior de los archivos `.kt`.
-
